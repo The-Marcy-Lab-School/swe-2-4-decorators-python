@@ -2,7 +2,7 @@
 
 Keep a value alive inside a function, and wrap a method so it refuses to run at the wrong moment.
 
-**Practicing:** closures, decorators, `@` syntax, wrapping a function, reusable refusal, `*args` and `**kwargs`
+**Practicing:** closures, decorators, `@` syntax, wrapping a function, returning the wrapper, reusable refusal
 
 - [AI Use on This Assignment](#ai-use-on-this-assignment)
 - [Setup](#setup)
