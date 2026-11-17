@@ -1,3 +1,72 @@
+import ast
+import inspect
+import textwrap
+
+
+def attributes_set_on(instance):
+    """The attribute names stored on this instance rather than on its class.
+
+    An attribute written in the class body is shared by every instance, so it
+    does not appear here. One assigned to self in __init__ does.
+    """
+    return set(vars(instance))
+
+
+def assigns_in_class_body(cls):
+    """The names assigned directly in a class body, read with the ast module.
+
+    The source is parsed rather than searched as text, so a name mentioned in a
+    comment or a docstring never counts.
+    """
+    source = textwrap.dedent(inspect.getsource(cls))
+    body = ast.parse(source).body[0].body
+    names = set()
+    for node in body:
+        if isinstance(node, ast.Assign):
+            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names.add(node.target.id)
+    return names
+
+def code_of(func):
+    """A function's source with its comments and docstring removed.
+
+    A test that bans a substring has to look at code only. Reading raw source
+    fails a fellow who mentions the banned thing in a comment -- "no isinstance
+    here" would fail a check for "isinstance" -- which is a correct answer
+    rejected for its prose.
+    """
+    source = textwrap.dedent(inspect.getsource(func))
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                node.body = body[1:] or [ast.Pass()]
+    return ast.unparse(ast.fix_missing_locations(tree))
+
+def as_written(module, name, cls=None):
+    """One function's body as it appears in the file, with decorators ignored.
+
+    Reading a decorated function at runtime gives you the wrapper, so its own
+    body is out of reach. Parsing the file instead shows what the fellow wrote,
+    and works whatever shape their decorator took -- a closure, a class with
+    __call__, or functools.wraps on top of either.
+    """
+    tree = ast.parse(inspect.getsource(module))
+    scope = tree.body
+    if cls is not None:
+        scope = next(n.body for n in tree.body
+                     if isinstance(n, ast.ClassDef) and n.name == cls)
+    found = next((n for n in scope
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                  and n.name == name), None)
+    assert found is not None, f"Keep a function named {name}."
+    return "\n".join(ast.unparse(stmt) for stmt in found.body)
+
+
 from modify import Reservation, audit, dock, make_ride_numbers, release, repair, requires_status
 
 
@@ -51,12 +120,16 @@ def test_refunding_a_paid_booking_works():
     assert booking.status == "refunded"
 
 
-def test_the_three_methods_go_through_a_decorator_now():
-    """Reservation - each transition is wrapped rather than checking for itself"""
+def test_the_checks_left_the_three_methods():
+    """Reservation - no method still carries its own status check"""
+    import modify
+
     for name in ("pay", "check_in", "refund"):
-        method = getattr(Reservation, name)
-        assert method.__closure__ is not None, \
-            f"{name} should be wrapped by @requires_status(...), not test the status itself."
+        body = as_written(modify, name, cls="Reservation")
+        assert "raise" not in body, \
+            f"{name} should not raise. @requires_status(...) does that now."
+        assert "self.status !=" not in body, \
+            f"{name} should not test the status. @requires_status(...) does that now."
 
     assert callable(requires_status("paid")), \
         "requires_status(status) returns a decorator, which is then applied to a method."
@@ -148,8 +221,11 @@ def test_audit_reads_the_name_off_the_function(capsys):
     assert "done inspect_frame" in out
 
 
-def test_the_three_functions_are_decorated_now():
-    """audit - the printing left their bodies"""
-    for func in (dock, release, repair):
-        assert func.__closure__ is not None, \
-            f"Put @audit on {func.__name__} and take the printing out of its body."
+def test_the_printing_left_the_three_bodies():
+    """audit - each function's body is only its own work now"""
+    import modify
+
+    for name in ("dock", "release", "repair"):
+        body = as_written(modify, name)
+        assert "print" not in body, \
+            f"Take the printing out of {name} and put @audit on it instead."
