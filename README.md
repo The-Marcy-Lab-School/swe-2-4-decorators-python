@@ -105,7 +105,6 @@ deciding which.
 | A **decorator** is a function that takes a function and returns a replacement for it. `@announce` above a definition means `dock = announce(dock)`. | 2.7 |
 | The decorator must `return wrapper`. Forgetting it binds the name to `None`, and calling it raises `'NoneType' object is not callable`. | 2.7 |
 | The wrapper must `return func(...)`. Forgetting it makes every decorated function return `None`, with no error at all. | 2.7 |
-| `*args` and `**kwargs` in the wrapper let one decorator work on functions with different signatures. | 2.7 |
 | A decorator on a **method** receives the instance as the wrapper's first argument, so the wrapper can read `self.status` before deciding whether to let the call through. | 2.7 |
 | A decorator is a **reusable refusal**. One decorator named for the rule it enforces beats the same `if` copied into every method, where forgetting it once lets an invalid change through silently. | 2.7 |
 | Raise **before** calling the method, so a refused call leaves the object exactly as it was. The order of those two lines is the whole guarantee. | 2.7 |
@@ -124,18 +123,18 @@ def make_surcharge(amount):          # a closure
 
 
 def announce(func):                  # a decorator
-    def wrapper(*args, **kwargs):
+    def wrapper(serial):
         print(f"calling {func.__name__}")
-        return func(*args, **kwargs) # return the result
+        return func(serial)          # return the result
     return wrapper                   # return the wrapper
 
 
 def requires_status(status):         # a decorator factory
     def decorator(method):
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self):
             if self.status != status:
                 raise ValueError(...)   # refuse before running
-            return method(self, *args, **kwargs)
+            return method(self)
         return wrapper
     return decorator
 
@@ -194,9 +193,9 @@ for it. Yours needs three things:
   every decorated function return `None`.
 - `announce` must **return `wrapper`** itself, not call it.
 
-Take `*args` and `**kwargs` in `wrapper` and pass them straight through, so the
-decorator works on a function with any arguments. A test uses two functions with
-different signatures.
+Every function this decorator wraps takes exactly one argument, so `wrapper`
+takes one too and passes it through. A test wraps a second one-argument function
+to check `announce` is not tied to `dock`.
 
 `@announce` above a definition is shorthand. It means `dock = announce(dock)` —
 the name `dock` is rebound to whatever `announce` gave back.
@@ -263,9 +262,8 @@ rental.status                    # "collected"
 
 **`Bike` is already written for you.**
 
-The decorator wraps a **method**, so `wrapper`'s first argument is the rental
-itself. Call it `self`, read `self.status`, and pass everything through to the
-method with `*args` and `**kwargs`.
+The decorator wraps a **method**, so `wrapper`'s argument is the rental itself.
+Call it `self`, read `self.status`, and pass it through to the method.
 
 Raise `ValueError` **before** calling the method, so a refused call leaves the
 object exactly as it was. A test checks that the status did not move.
@@ -409,14 +407,13 @@ dock("A1")
 # returns: "A1 docked"
 
 release("A1")                    # returns "A1 released"
-repair("A1", 2)                  # returns "A1 repaired in 2 days"
+repair("A1")                     # returns "A1 sent for repair"
 ```
 
 The printed lines use the function's own name, so `audit` works on a function it
 has never seen. The lines are `start ` then the name, and `done ` then the name.
 
-`repair` takes two arguments and the others take one, so `wrapper` needs `*args`
-and `**kwargs` rather than a fixed signature.
+All three take one argument, so `wrapper` takes one and passes it through.
 
 The "after" line has to print **after** the function runs but the result still
 has to come back, so hold the result in a variable, print, then return it.

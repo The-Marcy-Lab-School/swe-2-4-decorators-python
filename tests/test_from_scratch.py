@@ -26,26 +26,24 @@ def test_announce_returns_the_original_result():
         "wrapper must return func(...), not just call it."
 
 
-def test_announce_works_on_any_signature():
-    """announce - *args and **kwargs pass straight through"""
+def test_announce_is_not_tied_to_one_function():
+    """announce - it wraps any one-argument function"""
     @announce
-    def rate(base, hours, discount=0):
-        return base * hours - discount
+    def release(serial):
+        return f"{serial} released"
 
-    assert rate(3, 2) == 6
-    assert rate(3, 2, discount=1) == 5
-    assert rate(base=4, hours=2) == 8
+    assert release("B7") == "B7 released"
 
 
 def test_announce_returns_a_function():
     """announce - it returns the wrapper rather than calling it"""
-    def plain():
+    def plain(serial):
         return "ok"
 
     decorated = announce(plain)
 
     assert callable(decorated), "Return wrapper itself, with no parentheses."
-    assert decorated() == "ok"
+    assert decorated("A1") == "ok"
 
 
 def test_make_surcharge_returns_a_function():

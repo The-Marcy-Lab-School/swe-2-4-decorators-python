@@ -1,7 +1,7 @@
 def timed(func):
-    def wrapper(*args, **kwargs):
+    def wrapper(rate, hours):
         print(f"timed {func.__name__}")
-        func(*args, **kwargs)
+        func(rate, hours)
     return wrapper
 
 
@@ -11,10 +11,10 @@ def rental_cost(rate, hours):
 
 
 def require_rentable(method):
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self):
         if self.needs_repair:
             raise ValueError(f"{self.serial} needs repair, so it cannot be rented.")
-        return method(self, *args, **kwargs)
+        return method(self)
 
 
 class Trip:

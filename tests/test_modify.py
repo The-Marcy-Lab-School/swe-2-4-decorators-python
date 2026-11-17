@@ -194,7 +194,7 @@ def test_every_result_is_unchanged():
     """audit - a refactor, so the three answers must not move"""
     assert dock("A1") == "A1 docked"
     assert release("A1") == "A1 released"
-    assert repair("A1", 2) == "A1 repaired in 2 days"
+    assert repair("A1") == "A1 sent for repair"
 
 
 def test_the_lines_still_print_around_the_work(capsys):

@@ -60,8 +60,8 @@ def release(serial):
     return result
 
 
-def repair(serial, days):
+def repair(serial):
     print("start repair")
-    result = f"{serial} repaired in {days} days"
+    result = f"{serial} sent for repair"
     print("done repair")
     return result
