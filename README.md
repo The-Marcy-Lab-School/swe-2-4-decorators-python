@@ -110,6 +110,7 @@ deciding which.
 | A decorator is a **reusable refusal**. One decorator named for the rule it enforces beats the same `if` copied into every method, where forgetting it once lets an invalid change through silently. | 2.7 |
 | Raise **before** calling the method, so a refused call leaves the object exactly as it was. The order of those two lines is the whole guarantee. | 2.7 |
 | A **decorator factory** takes an argument and builds a decorator from it, so it is applied with parentheses: `@requires_status("paid")`. Missing them is legal Python that passes your method in as the argument. | 2.7 |
+| A decorated function reports the **wrapper's** name, so `dock.__name__` is `"wrapper"` once `@announce` is on it. `functools.wraps` copies the original's name and docstring onto the wrapper and fixes this. You will see it in real code and you are not asked to write it here. | 2.7 |
 
 </details>
 
